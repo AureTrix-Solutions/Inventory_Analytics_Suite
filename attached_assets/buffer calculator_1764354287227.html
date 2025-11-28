@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Improved Buffer Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        label { display: block; margin-top: 10px; }
+        textarea, input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+        button { margin-top: 15px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #results { margin-top: 20px; border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Improved Buffer Calculator</h1>
+    
+    <label for="demand" title="Enter demand data in chronological order, from oldest to newest.">Historical Demand Data <span onclick="toggleExplanation(this)" style="cursor: pointer; color: #007bff;">?</span><span class="explanation" style="display: none; color: #888888;"> Input historical demand values in order from oldest (top) to most recent (bottom). Separate by lines. Up to 24 entries allowed.)</span>:</label>
+    <textarea id="demand" rows="10" placeholder="Enter values like:&#10;8&#10;12&#10;9&#10;oldest to newest from top to bottom"></textarea>
+    
+    <label for="service">Service Level Goal (%):</label>
+    <input type="number" id="service" min="0" max="100" step="0.01" value="95">
+    
+    <label for="trr">TRR/Lead Time (Days):</label>
+    <input type="number" id="trr" min="0" step="0.01" value="9">
+    
+    <label for="alpha" title="Smoothing constant for Croston's method (0-1). Lower values smooth more.">Smoothing Constant (α) <span onclick="toggleExplanation(this)" style="cursor: pointer; color: #007bff;">?</span><span class="explanation" style="display: none; color: #888888;">1 = recent data weighted, 0 = historical data weighted, 0.15 industry standard)</span>:</label>
+    <input type="number" id="alpha" min="0" max="1" step="0.01" value="0.15">
+    
+    <button onclick="calculate()">Calculate</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        // Normal CDF approximation 
+        function normCdf(z) {
+            const t = 1 / (1 + 0.2316419 * Math.abs(z));
+            const d = 0.3989423 * Math.exp(-z * z / 2);
+            let prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+            if (z > 0) prob = 1 - prob;
+            return prob;
+        }
+
+        // Normal inverse (Acklam's algorithm)
+        function normInv(p) {
+            var a1 = -39.6968302866538, a2 = 220.946098424521, a3 = -275.928510446969;
+            var a4 = 138.357751867269, a5 = -30.6647980661472, a6 = 2.50662827745924;
+            var b1 = -54.4760987982241, b2 = 161.585836858041, b3 = -155.698979859887;
+            var b4 = 66.8013118877197, b5 = -13.2806815528857, c1 = -7.78489400243029E-03;
+            var c2 = -0.322396458041136, c3 = -2.40075827716184, c4 = -2.54973253934373;
+            var c5 = 4.37466414146497, c6 = 2.93816398269878, d1 = 7.78469570904146E-03;
+            var d2 = 0.32246712907004, d3 = 2.445134137143, d4 = 3.75440866190742;
+            var p_low = 0.02425, p_high = 1 - p_low;
+            var q, r;
+            var retVal;
+
+            if (p < 0 || p > 1) {
+                return NaN;
+            } else if (p === 0) {
+                return -Infinity;
+            } else if (p === 1) {
+                return Infinity;
+            } else if (p < p_low) {
+                q = Math.sqrt(-2 * Math.log(p));
+                retVal = (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) / ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+            } else if (p <= p_high) {
+                q = p - 0.5;
+                r = q * q;
+                retVal = (((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q / (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1);
+            } else {
+                q = Math.sqrt(-2 * Math.log(1 - p));
+                retVal = -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) / ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+            }
+
+            return retVal;
+        }
+
+        // New: Exponential random variable generator
+        function expRandom(mean) {
+            return -mean * Math.log(1 - Math.random());
+        }
+
+        function calculate() {
+            var demandText = document.getElementById('demand').value.trim();
+            var service = parseFloat(document.getElementById('service').value);
+            var trr = parseFloat(document.getElementById('trr').value);
+            var alpha = parseFloat(document.getElementById('alpha').value);
+            var resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (isNaN(service) || service < 0 || service > 100) {
+                resultsDiv.innerHTML = '<p class="error">Service level must be between 0 and 100.</p>';
+                return;
+            }
+            if (isNaN(trr) || trr < 0) {
+                resultsDiv.innerHTML = '<p class="error">TRR must be non-negative.</p>';
+                return;
+            }
+            if (isNaN(alpha) || alpha < 0 || alpha > 1) {
+                resultsDiv.innerHTML = '<p class="error">Smoothing constant must be between 0 and 1.</p>';
+                return;
+            }
+            if (!demandText) {
+                resultsDiv.innerHTML = '<p class="error">Please enter demand data.</p>';
+                return;
+            }
+
+            var demands = demandText.split(/[\s\n,]+/).map(function(val) {
+                val = val.trim();
+                var num = parseFloat(val);
+                return isNaN(num) ? null : num;
+            }).filter(function(val) { return val !== null; });
+
+            var n = demands.length;
+            if (n === 0 || n > 24) {
+                resultsDiv.innerHTML = '<p class="error">Enter up to 24 valid demand values.</p>';
+                return;
+            }
+
+            // Basic stats
+            var sum = demands.reduce((a, b) => a + b, 0);
+            var avg = sum / n;
+            var sumSq = demands.reduce((a, x) => a + Math.pow(x - avg, 2), 0);
+            var std = n > 1 ? Math.sqrt(sumSq / (n - 1)) : 0;
+
+            // Smoothed Croston with SBA
+            var nonZero = [];
+            var lastDemandIndex = -1;
+            var smoothedSize = 0;
+            var smoothedInterval = 1; // Initial interval
+            var hasDemand = false;
+            for (var i = 0; i < n; i++) {
+                if (demands[i] > 0) {
+                    nonZero.push(demands[i]);
+                    var interval = i - lastDemandIndex;
+                    if (!hasDemand) {
+                        smoothedSize = demands[i];
+                        smoothedInterval = 1; // Initial
+                        hasDemand = true;
+                    } else {
+                        smoothedInterval = alpha * interval + (1 - alpha) * smoothedInterval;
+                        smoothedSize = alpha * demands[i] + (1 - alpha) * smoothedSize;
+                    }
+                    lastDemandIndex = i;
+                }
+            }
+            var nonZeroCount = nonZero.length;
+            if (nonZeroCount === 0) {
+                smoothedSize = 0;
+                smoothedInterval = 1;
+            }
+            var crostonForecast = smoothedInterval > 0 ? smoothedSize / smoothedInterval : 0;
+            var forecast = crostonForecast * (1 - alpha / 2); // SBA correction
+
+            // MASE using improved forecast
+            var forecastMae = demands.reduce((a, x) => a + Math.abs(x - forecast), 0) / n;
+            var diffs = [];
+            for (var i = 1; i < n; i++) {
+                diffs.push(Math.abs(demands[i] - demands[i - 1]));
+            }
+            var naiveMae = diffs.length > 0 ? diffs.reduce((a, b) => a + b, 0) / diffs.length : 0;
+            var mase = naiveMae > 0 ? forecastMae / naiveMae : 0;
+
+            // AD test 
+            var xAsc = [...demands].sort((a, b) => a - b);
+            var xDesc = [...demands].sort((a, b) => b - a);
+            var sList = [];
+            for (var i = 1; i <= n; i++) {
+                var zAsc = (xAsc[i-1] - avg) / std;
+                var fAsc = normCdf(zAsc);
+                var lnF = Math.log(fAsc);
+                var zDesc = (xDesc[i-1] - avg) / std;
+                var fDesc = normCdf(zDesc);
+                var ln1F = Math.log(1 - fDesc);
+                var s = (2 * i - 1) * (lnF + ln1F);
+                sList.push(s);
+            }
+            var sumS = sList.reduce((a, b) => a + b, 0);
+            var a2 = -n - (1 / n) * sumS;
+            var aStar = a2 * (1 + 0.75 / n + 2.25 / Math.pow(n, 2));
+
+            // p-value
+            var pValue;
+            if (aStar < 0.2) {
+                pValue = 1 - Math.exp(-13.436 + 101.14 * aStar - 223.73 * Math.pow(aStar, 2));
+            } else if (aStar < 0.34) {
+                pValue = 1 - Math.exp(-8.318 + 42.796 * aStar - 59.938 * Math.pow(aStar, 2));
+            } else if (aStar < 0.6) {
+                pValue = Math.exp(0.9177 - 4.279 * aStar - 1.38 * Math.pow(aStar, 2));
+            } else {
+                pValue = Math.exp(1.2937 - 5.709 * aStar + 0.0186 * Math.pow(aStar, 2));
+            }
+
+            var predictable = pValue > 0.05 || isNaN(pValue); // Handle NaN cases conservatively
+
+            var p = service / 100;
+            var z = normInv(p);
+            if (isNaN(z)) {
+                resultsDiv.innerHTML = '<p class="error">Invalid service level for calculation.</p>';
+                return;
+            }
+
+            var baseStock = forecast * trr;
+            var safetyStock;
+
+            if (predictable) {
+                safetyStock = z * std * Math.sqrt(trr);
+            } else {
+                // Simulation for non-predictable: Monte Carlo with empirical sizes and exponential inter-arrivals
+                if (nonZeroCount === 0) {
+                    safetyStock = 0;
+                } else {
+                    var numSims = 100000;
+                    var totals = [];
+                    for (var sim = 0; sim < numSims; sim++) {
+                        var time = 0;
+                        var totalDemand = 0;
+                        while (time < trr) {
+                            time += expRandom(smoothedInterval);
+                            if (time < trr) {
+                                // Sample empirical size
+                                var sizeIndex = Math.floor(Math.random() * nonZeroCount);
+                                totalDemand += nonZero[sizeIndex];
+                            }
+                        }
+                        totals.push(totalDemand);
+                    }
+                    // Compute quantile
+                    totals.sort((a, b) => a - b);
+                    var quantileIndex = Math.floor(p * numSims);
+                    var quantile = totals[quantileIndex];
+                    // Empirical mean for adjustment
+                    var simMean = totals.reduce((a, b) => a + b, 0) / numSims;
+                    safetyStock = quantile - simMean;
+                }
+            }
+
+            var totalBuffer = baseStock + safetyStock;
+
+            resultsDiv.innerHTML = `
+                <p><strong>Detection: Predictable?</strong> ${predictable}</p>
+                <p><strong>Base Stock:</strong> ${baseStock.toFixed(2)}</p>
+                <p><strong>Safety Stock / Adjustment:</strong> ${safetyStock.toFixed(2)}</p>
+                <p><strong>Total Buffer:</strong> ${totalBuffer.toFixed(2)}</p>
+                <p><strong>Forecast Error (MASE):</strong> ${mase.toFixed(4)}</p>
+            `;
+        }
+
+        // New: Toggle function for the question mark explanation
+        function toggleExplanation(element) {
+            var exp = element.nextElementSibling;
+            exp.style.display = (exp.style.display === 'none' || exp.style.display === '') ? 'inline' : 'none';
+        }
+    </script>
+</body>
+</html>
