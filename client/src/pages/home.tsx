@@ -79,7 +79,7 @@ export default function Home() {
 
 function BufferCalculator() {
   const [demandInput, setDemandInput] = useState("8\n12\n9\n0\n5\n0\n11\n7\n0\n4");
-  const [serviceLevel, setServiceLevel] = useState(95);
+  const [serviceLevel, setServiceLevel] = useState(90);
   const [trr, setTrr] = useState(9);
   const [alpha, setAlpha] = useState(0.15);
   const [iterations, setIterations] = useState(50000);
@@ -291,7 +291,7 @@ function BufferCalculator() {
               </CardHeader>
               <CardContent className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 0 }}>
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 24 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                     <XAxis dataKey="index" tick={{fontSize: 12}} tickLine={false} axisLine={false} label={{ value: 'Month', position: 'insideBottom', offset: -5, fontSize: 11, fill: '#94a3b8' }} />
                     <YAxis tick={{fontSize: 12}} tickLine={false} axisLine={false} label={{ value: 'Units', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#94a3b8' }} />
@@ -300,7 +300,7 @@ function BufferCalculator() {
                       contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
                     />
                     <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Monthly Demand" />
-                    <ReferenceLine y={result.forecast} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Monthly Forecast', position: 'insideTopRight', fill: '#ef4444', fontSize: 12 }} />
+                    <ReferenceLine y={result.forecast} stroke="#ef4444" strokeDasharray="3 3" label={{ value: `Forecast: ${result.forecast.toFixed(2)}`, position: 'insideTopRight', fill: '#ef4444', fontSize: 12 }} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -320,9 +320,9 @@ function BufferCalculator() {
 }
 
 function TRRCalculator() {
-    const [demandInput, setDemandInput] = useState("12\n0\n15\n8\n0\n5\n11\n7\n0");
+    const [demandInput, setDemandInput] = useState("8\n12\n9\n0\n5\n0\n11\n7\n0\n4");
     const [buffer, setBuffer] = useState(120);
-    const [serviceLevel, setServiceLevel] = useState(95);
+    const [serviceLevel, setServiceLevel] = useState(90);
     const [alpha, setAlpha] = useState(0.15);
     const [iterations, setIterations] = useState(50000);
     const [result, setResult] = useState<ReverseCalculationResult | null>(null);
