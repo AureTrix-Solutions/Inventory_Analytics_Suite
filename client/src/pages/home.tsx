@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,11 +26,10 @@ import {
 } from "recharts";
 import { Info, Calculator, Activity, TrendingUp, Settings2, CheckCircle2, AlertCircle, Sliders } from "lucide-react";
 import {
-  Tooltip as UITooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import {
   Accordion,
@@ -162,16 +161,7 @@ function BufferCalculator() {
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="trr">TRR / Lead Time (Days)</Label>
-                <TooltipProvider>
-                  <UITooltip>
-                    <TooltipTrigger>
-                      <Info className="w-4 h-4 text-slate-400 hover:text-blue-500 transition-colors" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="w-64 text-xs">Enter lead time in days. Calculations assume 30-day months for converting between daily TRR and monthly demand data.</p>
-                    </TooltipContent>
-                  </UITooltip>
-                </TooltipProvider>
+                <InfoPopover content="Enter lead time in days. Calculations assume 30-day months for converting between daily TRR and monthly demand data." />
               </div>
               <Input
                 id="trr"
@@ -187,16 +177,7 @@ function BufferCalculator() {
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="alpha">Smoothing Constant (α)</Label>
-                <TooltipProvider>
-                  <UITooltip>
-                    <TooltipTrigger>
-                      <Info className="w-4 h-4 text-slate-400 hover:text-blue-500 transition-colors" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="w-64 text-xs">Controls responsiveness of Croston's method. 0.15 is industry standard. Higher values react faster to recent changes.</p>
-                    </TooltipContent>
-                  </UITooltip>
-                </TooltipProvider>
+                <InfoPopover content="Controls responsiveness of Croston's method. 0.15 is industry standard. Higher values react faster to recent changes." />
               </div>
               <Input
                 id="alpha"
@@ -501,6 +482,42 @@ function TRRCalculator() {
         </div>
       </div>
     );
+}
+
+function InfoPopover({ content }: { content: string }) {
+  const [open, setOpen] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => setOpen(false), 150);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="cursor-pointer"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <Info className="w-4 h-4 text-slate-400 hover:text-blue-500 transition-colors" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-72 bg-slate-800 text-white border-slate-700 shadow-xl"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <p className="text-xs leading-relaxed">{content}</p>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 function MetricCard({ title, value, subtitle, highlight = false, color = "blue" }: { title: string, value: string, subtitle: string, highlight?: boolean, color?: "blue" | "green" | "slate" }) {
