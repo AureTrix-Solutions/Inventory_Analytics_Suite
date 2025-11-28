@@ -1,6 +1,15 @@
 
 // Statistical Functions
 
+// Conversion constant: assumes monthly demand data with 30 days per period
+export const DAYS_PER_PERIOD = 30;
+
+// Maximum TRR in days for search bounds (2 years - a practical upper limit)
+const MAX_TRR_DAYS = 730;
+
+// Minimum sample size for reliable Anderson-Darling test
+const MIN_SAMPLE_SIZE = 5;
+
 // Normal CDF approximation
 export function normCdf(z: number): number {
   const t = 1 / (1 + 0.2316419 * Math.abs(z));
@@ -75,7 +84,7 @@ export interface ReverseCalculationResult {
 }
 
 // Helper: Croston's Method with SBA correction
-// Returns { smoothedSize, smoothedInterval, nonZero }
+// Returns { smoothedSize, smoothedInterval, nonZero, forecast }
 function computeCroston(demands: number[], alpha: number) {
   const n = demands.length;
   const nonZero: number[] = [];
@@ -89,15 +98,11 @@ function computeCroston(demands: number[], alpha: number) {
           nonZero.push(demands[i]);
           
           if (firstDemandIndex === -1) {
-              // First non-zero demand: initialize with observed gap from start
               firstDemandIndex = i;
               smoothedSize = demands[i];
-              // Use actual gap from start (i+1 periods until first demand)
-              // This fixes the bias when first demand appears late
               smoothedInterval = i + 1;
               lastDemandIndex = i;
           } else {
-              // Subsequent demands: apply exponential smoothing
               const interval = i - lastDemandIndex;
               smoothedInterval = alpha * interval + (1 - alpha) * smoothedInterval;
               smoothedSize = alpha * demands[i] + (1 - alpha) * smoothedSize;
@@ -108,70 +113,45 @@ function computeCroston(demands: number[], alpha: number) {
 
   const nonZeroCount = nonZero.length;
   
-  // Handle edge cases
   if (nonZeroCount === 0) {
-      // No demand at all
       smoothedSize = 0;
-      smoothedInterval = n; // Use full period as interval
+      smoothedInterval = n > 0 ? n : 1;
   } else if (nonZeroCount === 1) {
-      // Single demand point: use average interval (total periods / count)
-      // This provides a more robust estimate than just the gap to first demand
       smoothedInterval = n / nonZeroCount;
   }
 
-  // Croston forecast with SBA (Syntetos-Boylan Approximation) correction
   const crostonForecast = smoothedInterval > 0 ? smoothedSize / smoothedInterval : 0;
   const forecast = crostonForecast * (1 - alpha / 2);
 
   return { smoothedSize, smoothedInterval, nonZero, forecast };
 }
 
-// Buffer Calculation Logic
-export function calculateBuffer(
-  demands: number[],
-  serviceLevel: number,
-  trr: number,
-  alpha: number,
-  iterations: number = 50000
-): CalculationResult {
+// Helper: Anderson-Darling normality test
+// Returns { predictable, pValue }
+function andersonDarlingTest(demands: number[], avg: number, std: number): { predictable: boolean; pValue: number } {
   const n = demands.length;
   
-  // Basic stats
-  const sum = demands.reduce((a, b) => a + b, 0);
-  const avg = sum / n;
-  const sumSq = demands.reduce((a, x) => a + Math.pow(x - avg, 2), 0);
-  const std = n > 1 ? Math.sqrt(sumSq / (n - 1)) : 0;
-
-  // Croston with SBA (using corrected initialization)
-  const { smoothedInterval, nonZero, forecast } = computeCroston(demands, alpha);
-  const nonZeroCount = nonZero.length;
-
-  // MASE (Mean Absolute Scaled Error)
-  const forecastMae = demands.reduce((a, x) => a + Math.abs(x - forecast), 0) / n;
-  const diffs = [];
-  for (let i = 1; i < n; i++) {
-      diffs.push(Math.abs(demands[i] - demands[i - 1]));
+  // For small samples or zero variance, default to predictable (normal method)
+  if (n < MIN_SAMPLE_SIZE || std < 1e-10) {
+      return { predictable: true, pValue: 1 };
   }
-  const naiveMae = diffs.length > 0 ? diffs.reduce((a, b) => a + b, 0) / diffs.length : 0;
-  const mase = naiveMae > 0 ? forecastMae / naiveMae : 0;
 
-  // Anderson-Darling normality test
   const xAsc = [...demands].sort((a, b) => a - b);
   const xDesc = [...demands].sort((a, b) => b - a);
-  const sList = [];
+  let sumS = 0;
+  
   for (let i = 1; i <= n; i++) {
-      const zAsc = (xAsc[i-1] - avg) / (std || 1);
+      const zAsc = (xAsc[i-1] - avg) / std;
       const fAsc = normCdf(zAsc);
       const lnF = Math.log(Math.max(fAsc, 1e-10)); 
       
-      const zDesc = (xDesc[i-1] - avg) / (std || 1);
+      const zDesc = (xDesc[i-1] - avg) / std;
       const fDesc = normCdf(zDesc);
       const ln1F = Math.log(Math.max(1 - fDesc, 1e-10));
       
-      const s = (2 * i - 1) * (lnF + ln1F);
-      sList.push(s);
+      sumS += (2 * i - 1) * (lnF + ln1F);
   }
-  const sumS = sList.reduce((a, b) => a + b, 0);
+  
   const a2 = -n - (1 / n) * sumS;
   const aStar = a2 * (1 + 0.75 / n + 2.25 / Math.pow(n, 2));
 
@@ -186,31 +166,93 @@ export function calculateBuffer(
       pValue = Math.exp(1.2937 - 5.709 * aStar + 0.0186 * Math.pow(aStar, 2));
   }
 
+  // Clamp pValue to valid range
+  pValue = Math.max(0, Math.min(1, pValue));
+  
   const predictable = pValue > 0.05 || isNaN(pValue);
-  const p = serviceLevel / 100;
+  return { predictable, pValue };
+}
+
+// Buffer Calculation Logic
+export function calculateBuffer(
+  demands: number[],
+  serviceLevel: number,
+  trrDays: number,
+  alpha: number,
+  iterations: number = 50000
+): CalculationResult {
+  // Input validation
+  if (!demands || demands.length === 0) {
+      return {
+          predictable: true,
+          baseStock: 0,
+          safetyStock: 0,
+          totalBuffer: 0,
+          mase: 0,
+          forecast: 0,
+          std: 0,
+          pValue: 1,
+          method: 'Normal',
+          explanation: 'No demand data provided.',
+          demandStats: { avg: 0, sum: 0, count: 0 }
+      };
+  }
+
+  const n = demands.length;
+  
+  // Convert TRR from days to periods (months)
+  const trrPeriods = trrDays / DAYS_PER_PERIOD;
+  
+  // Basic stats
+  const sum = demands.reduce((a, b) => a + b, 0);
+  const avg = sum / n;
+  const sumSq = demands.reduce((a, x) => a + Math.pow(x - avg, 2), 0);
+  const std = n > 1 ? Math.sqrt(sumSq / (n - 1)) : 0;
+
+  // Croston with SBA
+  const { smoothedInterval, nonZero, forecast } = computeCroston(demands, alpha);
+  const nonZeroCount = nonZero.length;
+
+  // MASE (Mean Absolute Scaled Error)
+  const forecastMae = demands.reduce((a, x) => a + Math.abs(x - forecast), 0) / n;
+  const diffs = [];
+  for (let i = 1; i < n; i++) {
+      diffs.push(Math.abs(demands[i] - demands[i - 1]));
+  }
+  const naiveMae = diffs.length > 0 ? diffs.reduce((a, b) => a + b, 0) / diffs.length : 0;
+  const mase = naiveMae > 0 ? forecastMae / naiveMae : 0;
+
+  // Anderson-Darling normality test
+  const { predictable, pValue } = andersonDarlingTest(demands, avg, std);
+
+  // Handle service level - keep original value but guard edge cases
+  const p = Math.min(0.9999, Math.max(0.5, serviceLevel / 100));
   const z = normInv(p);
 
-  const baseStock = forecast * trr;
+  // Base stock = forecast per period × number of periods in TRR
+  const baseStock = forecast * trrPeriods;
   let safetyStock = 0;
   let method: 'Normal' | 'Monte Carlo' = 'Normal';
 
   if (predictable) {
-      safetyStock = z * std * Math.sqrt(trr);
+      // Safety stock = z × std × √(periods in TRR)
+      safetyStock = z * std * Math.sqrt(trrPeriods);
   } else {
       method = 'Monte Carlo';
       if (nonZeroCount === 0) {
           safetyStock = 0;
       } else {
           const numSims = iterations;
-          const totals = [];
+          const totals: number[] = [];
           let simMeanAcc = 0;
           
           for (let sim = 0; sim < numSims; sim++) {
               let time = 0;
               let totalDemand = 0;
-              while (time < trr) {
+              // Simulation runs in periods (months), comparing to trrPeriods
+              while (time < trrPeriods) {
                   time += expRandom(smoothedInterval);
-                  if (time < trr) {
+                  if (time < trrPeriods) {
                       const sizeIndex = Math.floor(Math.random() * nonZeroCount);
                       totalDemand += nonZero[sizeIndex];
                   }
@@ -220,8 +262,9 @@ export function calculateBuffer(
           }
           
           totals.sort((a, b) => a - b);
-          const quantileIndex = Math.floor(p * numSims);
-          const quantile = totals[Math.min(quantileIndex, numSims - 1)];
+          // Clamp quantile index to valid range
+          const quantileIndex = Math.min(Math.floor(p * numSims), numSims - 1);
+          const quantile = totals[quantileIndex];
           const simMean = simMeanAcc / numSims;
           safetyStock = Math.max(0, quantile - simMean);
       }
@@ -251,44 +294,43 @@ export function calculateReverseTRR(
     alpha: number,
     iterations: number = 50000
 ): ReverseCalculationResult {
+    // Input validation
+    if (!demands || demands.length === 0) {
+        return {
+            maxTRR: MAX_TRR_DAYS,
+            forecast: 0,
+            std: 0,
+            predictable: true,
+            explanation: 'No demand data - buffer supports maximum TRR.',
+            pValue: 1
+        };
+    }
+
     const n = demands.length;
-    const avg = demands.reduce((a, b) => a + b, 0) / n;
+    const sum = demands.reduce((a, b) => a + b, 0);
+    const avg = sum / n;
     const sumSq = demands.reduce((a, x) => a + Math.pow(x - avg, 2), 0);
     const std = n > 1 ? Math.sqrt(sumSq / (n - 1)) : 0;
 
-    // Croston with SBA (using corrected initialization)
+    // Croston with SBA
     const { smoothedInterval, nonZero, forecast } = computeCroston(demands, alpha);
 
     // Anderson-Darling normality test
-    const xAsc = [...demands].sort((a, b) => a - b);
-    const xDesc = [...demands].sort((a, b) => b - a);
-    let sumS = 0;
-    for (let i = 1; i <= n; i++) {
-        const zA = (xAsc[i - 1] - avg) / (std || 1);
-        const zD = (xDesc[i - 1] - avg) / (std || 1);
-        sumS += (2 * i - 1) * (Math.log(Math.max(normCdf(zA), 1e-10)) + Math.log(Math.max(1 - normCdf(zD), 1e-10)));
-    }
-    const a2 = -n - sumS / n;
-    const aStar = a2 * (1 + 0.75 / n + 2.25 / (n * n));
+    const { predictable, pValue } = andersonDarlingTest(demands, avg, std);
     
-    let pValue = 0;
-    if (aStar < 0.2) pValue = 1 - Math.exp(-13.436 + 101.14 * aStar - 223.73 * aStar * aStar);
-    else if (aStar < 0.34) pValue = 1 - Math.exp(-8.318 + 42.796 * aStar - 59.938 * aStar * aStar);
-    else if (aStar < 0.6) pValue = Math.exp(0.9177 - 4.279 * aStar - 1.38 * aStar * aStar);
-    else pValue = Math.exp(1.2937 - 5.709 * aStar + 0.0186 * aStar * aStar);
-    
-    const predictable = pValue > 0.05 || isNaN(pValue);
-    const z = normInv(serviceLevel / 100);
+    // Handle service level - keep original value but guard edge cases
+    const p = Math.min(0.9999, Math.max(0.5, serviceLevel / 100));
+    const z = normInv(p);
 
-    let maxTRR = 0;
+    // Maximum TRR in periods
+    const maxTrrPeriods = MAX_TRR_DAYS / DAYS_PER_PERIOD;
+
+    let maxTRRPeriods = 0;
     let explanation = '';
 
     if (predictable) {
-        // CORRECTED QUADRATIC FORMULA
-        // Buffer = forecast * TRR + z * std * sqrt(TRR)
-        // Let y = sqrt(TRR), then: forecast * y^2 + z * std * y - Buffer = 0
-        // Quadratic: a*y^2 + b*y + c = 0 where a=forecast, b=z*std, c=-Buffer
-        // Solve for y >= 0, then TRR = y^2
+        // Solve: Buffer = forecast × TRR_periods + z × std × √TRR_periods
+        // Let y = √TRR_periods, then: forecast × y² + z × std × y - Buffer = 0
         
         const a = forecast;
         const b = z * std;
@@ -296,13 +338,13 @@ export function calculateReverseTRR(
         
         // Handle edge case where forecast is 0 or very small
         if (a < 1e-10) {
-            // If no demand forecast, buffer covers infinite TRR (or limited by safety stock only)
             if (b > 0 && targetBuffer > 0) {
-                // Buffer = z * std * sqrt(TRR) => sqrt(TRR) = Buffer / (z * std)
+                // Buffer = z × std × √TRR => √TRR = Buffer / (z × std)
                 const y = targetBuffer / b;
-                maxTRR = y * y;
+                maxTRRPeriods = y * y;
             } else {
-                maxTRR = 365; // Effectively unlimited
+                // Effectively unlimited - use max
+                maxTRRPeriods = maxTrrPeriods;
             }
             explanation = `Low/zero demand forecast - buffer supports extended TRR.`;
         } else {
@@ -310,49 +352,52 @@ export function calculateReverseTRR(
             
             if (discriminant < 0) {
                 explanation = 'Demand too high/variable for this buffer.';
-                maxTRR = 0;
+                maxTRRPeriods = 0;
             } else {
-                // We need the positive root for y = sqrt(TRR)
-                // y = (-b + sqrt(discriminant)) / (2a) or y = (-b - sqrt(discriminant)) / (2a)
-                // Since a > 0 and c < 0, discriminant > b^2, so sqrt(discriminant) > |b|
-                // The positive root is: y = (-b + sqrt(discriminant)) / (2a)
+                // Positive root: y = (-b + √discriminant) / (2a)
                 const y = (-b + Math.sqrt(discriminant)) / (2 * a);
                 
                 if (y > 0) {
-                    maxTRR = y * y;
+                    maxTRRPeriods = y * y;
                 } else {
-                    // Try the other root
                     const y2 = (-b - Math.sqrt(discriminant)) / (2 * a);
-                    maxTRR = y2 > 0 ? y2 * y2 : 0;
+                    maxTRRPeriods = y2 > 0 ? y2 * y2 : 0;
                 }
                 
                 explanation = `Normal distribution model used (p=${pValue.toFixed(3)}).`;
             }
         }
+        
+        // Cap at maximum
+        maxTRRPeriods = Math.min(maxTRRPeriods, maxTrrPeriods);
+        
     } else {
         // Intermittent demand: use binary search with Monte Carlo
-        let low = 0.1, high = 365, bestTRR = 0;
-        const tolerance = 0.1;
+        // Search in periods, then convert result to days
+        let low = 0.01, high = maxTrrPeriods, bestTRR = 0;
+        const tolerance = 0.01; // ~0.3 days precision
         
-        const simulateServiceLevel = (TRR: number) => {
+        const simulateServiceLevel = (trrPeriods: number) => {
             if (nonZero.length === 0) return true;
             const sims = iterations;
             const totals: number[] = [];
             
             for (let i = 0; i < sims; i++) {
                 let time = 0, demand = 0;
-                while (time < TRR) {
+                while (time < trrPeriods) {
                     time += expRandom(smoothedInterval);
-                    if (time < TRR) demand += nonZero[Math.floor(Math.random() * nonZero.length)];
+                    if (time < trrPeriods) demand += nonZero[Math.floor(Math.random() * nonZero.length)];
                 }
                 totals.push(demand);
             }
             totals.sort((a, b) => a - b);
-            const quantile = totals[Math.floor((serviceLevel / 100) * sims)];
+            // Clamp quantile index
+            const quantileIndex = Math.min(Math.floor(p * sims), sims - 1);
+            const quantile = totals[quantileIndex];
             return quantile <= targetBuffer; 
         };
 
-        for (let iter = 0; iter < 30; iter++) {
+        for (let iter = 0; iter < 40; iter++) {
             const mid = (low + high) / 2;
             if (simulateServiceLevel(mid)) {
                 bestTRR = mid;
@@ -362,12 +407,15 @@ export function calculateReverseTRR(
             }
             if (high - low < tolerance) break;
         }
-        maxTRR = bestTRR;
+        maxTRRPeriods = bestTRR;
         explanation = 'Intermittent demand model (Monte Carlo simulation).';
     }
 
+    // Convert result from periods to days
+    const maxTRRDays = maxTRRPeriods * DAYS_PER_PERIOD;
+
     return {
-        maxTRR,
+        maxTRR: maxTRRDays,
         forecast,
         std,
         predictable,

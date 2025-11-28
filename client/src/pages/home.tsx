@@ -160,7 +160,19 @@ function BufferCalculator() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="trr">TRR / Lead Time (Days)</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="trr">TRR / Lead Time (Days)</Label>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger>
+                      <Info className="w-4 h-4 text-slate-400 hover:text-blue-500 transition-colors" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="w-64 text-xs">Enter lead time in days. Calculations assume 30-day months for converting between daily TRR and monthly demand data.</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 id="trr"
                 type="number"
@@ -452,9 +464,9 @@ function TRRCalculator() {
                             color="green"
                         />
                         <MetricCard
-                            title="Daily Forecast"
+                            title="Monthly Forecast"
                             value={result.forecast.toFixed(2)}
-                            subtitle="Units / Day"
+                            subtitle="Units / Month"
                             color="slate"
                         />
                     </div>
@@ -522,6 +534,9 @@ function MethodologySection() {
                 <p>
                     The calculators employ robust statistical methods tailored for supply chain dynamics. 
                     <strong> Croston's Method</strong> (with SBA correction) is used for forecasting, which is superior to simple moving averages for intermittent demand.
+                </p>
+                <p>
+                    <strong>Note:</strong> Demand data is assumed to be monthly. TRR (lead time) is entered in days and automatically converted using a 30-day month assumption.
                 </p>
                 <p>
                     The <strong>Anderson-Darling test</strong> automatically detects if demand follows a normal distribution. If normality is rejected (p &lt; 0.05), the system switches to a <strong>Monte Carlo simulation</strong> to determine safety stocks, ensuring accuracy even with erratic demand patterns.
