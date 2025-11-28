@@ -74,6 +74,58 @@ export interface ReverseCalculationResult {
   pValue: number;
 }
 
+// Helper: Croston's Method with SBA correction
+// Returns { smoothedSize, smoothedInterval, nonZero }
+function computeCroston(demands: number[], alpha: number) {
+  const n = demands.length;
+  const nonZero: number[] = [];
+  let lastDemandIndex = -1;
+  let smoothedSize = 0;
+  let smoothedInterval = 1;
+  let firstDemandIndex = -1;
+
+  for (let i = 0; i < n; i++) {
+      if (demands[i] > 0) {
+          nonZero.push(demands[i]);
+          
+          if (firstDemandIndex === -1) {
+              // First non-zero demand: initialize with observed gap from start
+              firstDemandIndex = i;
+              smoothedSize = demands[i];
+              // Use actual gap from start (i+1 periods until first demand)
+              // This fixes the bias when first demand appears late
+              smoothedInterval = i + 1;
+              lastDemandIndex = i;
+          } else {
+              // Subsequent demands: apply exponential smoothing
+              const interval = i - lastDemandIndex;
+              smoothedInterval = alpha * interval + (1 - alpha) * smoothedInterval;
+              smoothedSize = alpha * demands[i] + (1 - alpha) * smoothedSize;
+              lastDemandIndex = i;
+          }
+      }
+  }
+
+  const nonZeroCount = nonZero.length;
+  
+  // Handle edge cases
+  if (nonZeroCount === 0) {
+      // No demand at all
+      smoothedSize = 0;
+      smoothedInterval = n; // Use full period as interval
+  } else if (nonZeroCount === 1) {
+      // Single demand point: use average interval (total periods / count)
+      // This provides a more robust estimate than just the gap to first demand
+      smoothedInterval = n / nonZeroCount;
+  }
+
+  // Croston forecast with SBA (Syntetos-Boylan Approximation) correction
+  const crostonForecast = smoothedInterval > 0 ? smoothedSize / smoothedInterval : 0;
+  const forecast = crostonForecast * (1 - alpha / 2);
+
+  return { smoothedSize, smoothedInterval, nonZero, forecast };
+}
+
 // Buffer Calculation Logic
 export function calculateBuffer(
   demands: number[],
@@ -90,38 +142,11 @@ export function calculateBuffer(
   const sumSq = demands.reduce((a, x) => a + Math.pow(x - avg, 2), 0);
   const std = n > 1 ? Math.sqrt(sumSq / (n - 1)) : 0;
 
-  // Smoothed Croston with SBA
-  const nonZero: number[] = [];
-  let lastDemandIndex = -1;
-  let smoothedSize = 0;
-  let smoothedInterval = 1;
-  let hasDemand = false;
-
-  for (let i = 0; i < n; i++) {
-      if (demands[i] > 0) {
-          nonZero.push(demands[i]);
-          const interval = i - lastDemandIndex;
-          if (!hasDemand) {
-              smoothedSize = demands[i];
-              smoothedInterval = 1;
-              hasDemand = true;
-          } else {
-              smoothedInterval = alpha * interval + (1 - alpha) * smoothedInterval;
-              smoothedSize = alpha * demands[i] + (1 - alpha) * smoothedSize;
-          }
-          lastDemandIndex = i;
-      }
-  }
-
+  // Croston with SBA (using corrected initialization)
+  const { smoothedInterval, nonZero, forecast } = computeCroston(demands, alpha);
   const nonZeroCount = nonZero.length;
-  if (nonZeroCount === 0) {
-      smoothedSize = 0;
-      smoothedInterval = 1;
-  }
-  const crostonForecast = smoothedInterval > 0 ? smoothedSize / smoothedInterval : 0;
-  const forecast = crostonForecast * (1 - alpha / 2); // SBA correction
 
-  // MASE
+  // MASE (Mean Absolute Scaled Error)
   const forecastMae = demands.reduce((a, x) => a + Math.abs(x - forecast), 0) / n;
   const diffs = [];
   for (let i = 1; i < n; i++) {
@@ -130,14 +155,13 @@ export function calculateBuffer(
   const naiveMae = diffs.length > 0 ? diffs.reduce((a, b) => a + b, 0) / diffs.length : 0;
   const mase = naiveMae > 0 ? forecastMae / naiveMae : 0;
 
-  // Anderson-Darling test
+  // Anderson-Darling normality test
   const xAsc = [...demands].sort((a, b) => a - b);
   const xDesc = [...demands].sort((a, b) => b - a);
   const sList = [];
   for (let i = 1; i <= n; i++) {
-      const zAsc = (xAsc[i-1] - avg) / (std || 1); // avoid div by zero
+      const zAsc = (xAsc[i-1] - avg) / (std || 1);
       const fAsc = normCdf(zAsc);
-      // Clamp log input to avoid -Infinity
       const lnF = Math.log(Math.max(fAsc, 1e-10)); 
       
       const zDesc = (xDesc[i-1] - avg) / (std || 1);
@@ -225,38 +249,17 @@ export function calculateReverseTRR(
     targetBuffer: number,
     serviceLevel: number,
     alpha: number,
-    iterations: number = 10000
+    iterations: number = 50000
 ): ReverseCalculationResult {
     const n = demands.length;
     const avg = demands.reduce((a, b) => a + b, 0) / n;
     const sumSq = demands.reduce((a, x) => a + Math.pow(x - avg, 2), 0);
     const std = n > 1 ? Math.sqrt(sumSq / (n - 1)) : 0;
 
-    // Croston
-    const nonZero: number[] = [];
-    let lastIdx = -1;
-    let smoothedSize = 0;
-    let smoothedInterval = 1;
-    let hasDemand = false;
+    // Croston with SBA (using corrected initialization)
+    const { smoothedInterval, nonZero, forecast } = computeCroston(demands, alpha);
 
-    for (let i = 0; i < n; i++) {
-        if (demands[i] > 0) {
-            nonZero.push(demands[i]);
-            const interval = lastIdx === -1 ? 1 : i - lastIdx;
-            if (!hasDemand) {
-                smoothedSize = demands[i];
-                hasDemand = true;
-            } else {
-                smoothedInterval = alpha * interval + (1 - alpha) * smoothedInterval;
-                smoothedSize = alpha * demands[i] + (1 - alpha) * smoothedSize;
-            }
-            lastIdx = i;
-        }
-    }
-    const croston = smoothedInterval > 0 ? smoothedSize / smoothedInterval : 0;
-    const forecast = croston * (1 - alpha / 2);
-
-    // AD Test
+    // Anderson-Darling normality test
     const xAsc = [...demands].sort((a, b) => a - b);
     const xDesc = [...demands].sort((a, b) => b - a);
     let sumS = 0;
@@ -281,43 +284,75 @@ export function calculateReverseTRR(
     let explanation = '';
 
     if (predictable) {
-        const a = (z * z * std * std) / 4;
-        const b = forecast;
+        // CORRECTED QUADRATIC FORMULA
+        // Buffer = forecast * TRR + z * std * sqrt(TRR)
+        // Let y = sqrt(TRR), then: forecast * y^2 + z * std * y - Buffer = 0
+        // Quadratic: a*y^2 + b*y + c = 0 where a=forecast, b=z*std, c=-Buffer
+        // Solve for y >= 0, then TRR = y^2
+        
+        const a = forecast;
+        const b = z * std;
         const c = -targetBuffer;
-        const discriminant = b * b - 4 * a * c;
-        if (discriminant < 0) {
-            explanation = 'Demand too high/variable for this buffer.';
-            maxTRR = 0;
+        
+        // Handle edge case where forecast is 0 or very small
+        if (a < 1e-10) {
+            // If no demand forecast, buffer covers infinite TRR (or limited by safety stock only)
+            if (b > 0 && targetBuffer > 0) {
+                // Buffer = z * std * sqrt(TRR) => sqrt(TRR) = Buffer / (z * std)
+                const y = targetBuffer / b;
+                maxTRR = y * y;
+            } else {
+                maxTRR = 365; // Effectively unlimited
+            }
+            explanation = `Low/zero demand forecast - buffer supports extended TRR.`;
         } else {
-            const root1 = (-b + Math.sqrt(discriminant)) / (2 * a);
-            const root2 = (-b - Math.sqrt(discriminant)) / (2 * a);
-            maxTRR = Math.max(root1, root2);
-            explanation = `Normal distribution model used (p=${pValue.toFixed(3)}).`;
+            const discriminant = b * b - 4 * a * c;
+            
+            if (discriminant < 0) {
+                explanation = 'Demand too high/variable for this buffer.';
+                maxTRR = 0;
+            } else {
+                // We need the positive root for y = sqrt(TRR)
+                // y = (-b + sqrt(discriminant)) / (2a) or y = (-b - sqrt(discriminant)) / (2a)
+                // Since a > 0 and c < 0, discriminant > b^2, so sqrt(discriminant) > |b|
+                // The positive root is: y = (-b + sqrt(discriminant)) / (2a)
+                const y = (-b + Math.sqrt(discriminant)) / (2 * a);
+                
+                if (y > 0) {
+                    maxTRR = y * y;
+                } else {
+                    // Try the other root
+                    const y2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+                    maxTRR = y2 > 0 ? y2 * y2 : 0;
+                }
+                
+                explanation = `Normal distribution model used (p=${pValue.toFixed(3)}).`;
+            }
         }
     } else {
+        // Intermittent demand: use binary search with Monte Carlo
         let low = 0.1, high = 365, bestTRR = 0;
         const tolerance = 0.1;
         
-        // Helper for simulation
         const simulateServiceLevel = (TRR: number) => {
-            if (nonZero.length === 0) return 1;
+            if (nonZero.length === 0) return true;
             const sims = iterations;
-            const totals = [];
+            const totals: number[] = [];
             
-            for(let i=0; i<sims; i++){
-                let time=0, demand=0;
-                while(time < TRR){
+            for (let i = 0; i < sims; i++) {
+                let time = 0, demand = 0;
+                while (time < TRR) {
                     time += expRandom(smoothedInterval);
-                    if(time < TRR) demand += nonZero[Math.floor(Math.random() * nonZero.length)];
+                    if (time < TRR) demand += nonZero[Math.floor(Math.random() * nonZero.length)];
                 }
                 totals.push(demand);
             }
-            totals.sort((a,b)=>a-b);
-            const quantile = totals[Math.floor((serviceLevel/100) * sims)];
+            totals.sort((a, b) => a - b);
+            const quantile = totals[Math.floor((serviceLevel / 100) * sims)];
             return quantile <= targetBuffer; 
         };
 
-        for (let iter = 0; iter < 20; iter++) { // Reduced iterations
+        for (let iter = 0; iter < 30; iter++) {
             const mid = (low + high) / 2;
             if (simulateServiceLevel(mid)) {
                 bestTRR = mid;
