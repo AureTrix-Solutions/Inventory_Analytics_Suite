@@ -79,3 +79,21 @@ Preferred communication style: Simple, everyday language.
 **Component Composition**: Heavy use of component composition patterns with data slots and variant props for flexible, reusable UI components.
 
 **Calculation Logic**: Statistical calculations are implemented client-side, reducing server load and enabling immediate feedback for users adjusting parameters.
+
+## Documentation
+
+The project includes comprehensive developer documentation:
+
+- **README.md**: Project overview, installation, usage, and deployment instructions
+- **docs/ARCHITECTURE.md**: System architecture and design decisions
+- **docs/CALCULATIONS.md**: Mathematical formulas and statistical methods documentation
+- **docs/CONTRIBUTING.md**: Contribution guidelines for open source contributors
+
+## Deployment Configuration
+
+- **netlify.toml**: Netlify deployment configuration (build to `dist/public`)
+- **.github/workflows/deploy.yml**: GitHub Actions workflow for GitHub Pages deployment
+
+## License
+
+GNU Affero General Public License v3.0 (AGPL-3.0) - copyleft license ensuring source code remains open.
