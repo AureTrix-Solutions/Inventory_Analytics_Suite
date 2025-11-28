@@ -127,18 +127,18 @@ function BufferCalculator() {
         <CardContent className="space-y-6 pt-6">
           <div className="space-y-3">
             <Label htmlFor="demand" className="flex justify-between">
-              Historical Demand
+              Historical Demand (Monthly)
               <span className="text-xs text-slate-400 font-normal">Oldest → Newest</span>
             </Label>
             <Textarea
               id="demand"
               value={demandInput}
               onChange={(e) => setDemandInput(e.target.value)}
-              placeholder="Enter values separated by newlines..."
+              placeholder="Enter monthly demand values..."
               className="font-mono text-sm min-h-[180px] resize-none bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-blue-500 focus:ring-blue-500/20"
             />
             <p className="text-xs text-slate-500">
-              Supports up to 48 periods. Enter 0 for periods with no demand.
+              Enter units sold per month. Supports up to 48 months. Enter 0 for months with no demand.
             </p>
           </div>
 
@@ -261,19 +261,19 @@ function BufferCalculator() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <MetricCard
                 title="Total Buffer"
-                value={result.totalBuffer.toFixed(2)}
-                subtitle="Base + Safety"
+                value={`${result.totalBuffer.toFixed(2)} units`}
+                subtitle="Base + Safety Stock"
                 highlight
               />
               <MetricCard
                 title="Base Stock"
-                value={result.baseStock.toFixed(2)}
-                subtitle="Cycle Stock"
+                value={`${result.baseStock.toFixed(2)} units`}
+                subtitle="Expected demand during TRR"
               />
               <MetricCard
                 title="Safety Stock"
-                value={result.safetyStock.toFixed(2)}
-                subtitle={result.method === 'Monte Carlo' ? 'Simulated' : 'Standard Deviation'}
+                value={`${result.safetyStock.toFixed(2)} units`}
+                subtitle={result.method === 'Monte Carlo' ? 'Via simulation' : 'Via standard deviation'}
               />
             </div>
 
@@ -291,16 +291,16 @@ function BufferCalculator() {
               </CardHeader>
               <CardContent className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="index" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                    <YAxis tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="index" tick={{fontSize: 12}} tickLine={false} axisLine={false} label={{ value: 'Month', position: 'insideBottom', offset: -5, fontSize: 11, fill: '#94a3b8' }} />
+                    <YAxis tick={{fontSize: 12}} tickLine={false} axisLine={false} label={{ value: 'Units', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#94a3b8' }} />
                     <Tooltip 
                       cursor={{fill: 'rgba(0,0,0,0.05)'}}
                       contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
                     />
-                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Demand" />
-                    <ReferenceLine y={result.forecast} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Forecast', position: 'insideTopRight', fill: '#ef4444', fontSize: 12 }} />
+                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Monthly Demand" />
+                    <ReferenceLine y={result.forecast} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Monthly Forecast', position: 'insideTopRight', fill: '#ef4444', fontSize: 12 }} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -362,14 +362,15 @@ function TRRCalculator() {
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
             <div className="space-y-3">
-              <Label htmlFor="trr-demand">Historical Demand</Label>
+              <Label htmlFor="trr-demand">Historical Demand (Monthly)</Label>
               <Textarea
                 id="trr-demand"
                 value={demandInput}
                 onChange={(e) => setDemandInput(e.target.value)}
-                placeholder="Enter values..."
+                placeholder="Enter monthly demand values..."
                 className="font-mono text-sm min-h-[150px] resize-none bg-slate-50 dark:bg-slate-900 focus:border-green-500 focus:ring-green-500/20"
               />
+              <p className="text-xs text-slate-500">Enter units sold per month.</p>
             </div>
             
             <div className="grid gap-2">
@@ -465,8 +466,8 @@ function TRRCalculator() {
                         />
                         <MetricCard
                             title="Monthly Forecast"
-                            value={result.forecast.toFixed(2)}
-                            subtitle="Units / Month"
+                            value={`${result.forecast.toFixed(2)} units`}
+                            subtitle="Expected demand per month"
                             color="slate"
                         />
                     </div>
