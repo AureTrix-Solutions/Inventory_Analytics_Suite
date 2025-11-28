@@ -312,7 +312,7 @@ function TRRCalculator() {
     const [buffer, setBuffer] = useState(120);
     const [serviceLevel, setServiceLevel] = useState(95);
     const [alpha, setAlpha] = useState(0.15);
-    const [iterations, setIterations] = useState(10000);
+    const [iterations, setIterations] = useState(50000);
     const [result, setResult] = useState<ReverseCalculationResult | null>(null);
     const [error, setError] = useState<string | null>(null);
   
@@ -413,9 +413,9 @@ function TRRCalculator() {
                       </div>
                       <Slider
                         value={[iterations]}
-                        min={5000}
-                        max={50000}
-                        step={2500}
+                        min={10000}
+                        max={100000}
+                        step={5000}
                         onValueChange={(vals) => setIterations(vals[0])}
                         className="py-2"
                       />
