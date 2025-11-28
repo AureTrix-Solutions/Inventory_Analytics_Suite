@@ -95,6 +95,9 @@ function BufferCalculator() {
 
       if (demands.length === 0) throw new Error("Please enter valid demand data.");
       if (demands.length > 48) throw new Error("Too many data points (max 48 recommended).");
+      if (serviceLevel < 50 || serviceLevel > 99.99) throw new Error("Service level must be between 50% and 99.99%.");
+      if (alpha < 0.01 || alpha > 1) throw new Error("Smoothing constant must be between 0.01 and 1.0.");
+      if (trr < 0) throw new Error("TRR / Lead Time must be 0 or greater.");
 
       const res = calculateBuffer(demands, serviceLevel, trr, alpha, iterations);
       setResult(res);
@@ -318,6 +321,9 @@ function TRRCalculator() {
           .filter(v => !isNaN(v));
   
         if (demands.length === 0) throw new Error("Please enter valid demand data.");
+        if (buffer <= 0) throw new Error("Current buffer must be greater than 0.");
+        if (serviceLevel < 50 || serviceLevel > 99.99) throw new Error("Service level must be between 50% and 99.99%.");
+        if (alpha < 0.01 || alpha > 1) throw new Error("Smoothing constant must be between 0.01 and 1.0.");
   
         const res = calculateReverseTRR(demands, buffer, serviceLevel, alpha, iterations);
         setResult(res);
@@ -361,6 +367,7 @@ function TRRCalculator() {
                   type="number"
                   value={buffer}
                   onChange={(e) => setBuffer(Number(e.target.value))}
+                  min={1}
                   className="font-mono"
                 />
             </div>
@@ -372,7 +379,8 @@ function TRRCalculator() {
                   type="number"
                   value={serviceLevel}
                   onChange={(e) => setServiceLevel(Number(e.target.value))}
-                  max={99.9}
+                  min={50}
+                  max={99.99}
                   step={0.1}
                   className="font-mono"
                 />
@@ -385,6 +393,8 @@ function TRRCalculator() {
                   type="number"
                   value={alpha}
                   onChange={(e) => setAlpha(Number(e.target.value))}
+                  min={0.01}
+                  max={1}
                   step={0.01}
                   className="font-mono"
                 />
