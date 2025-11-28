@@ -35,8 +35,14 @@ const allowlist = [
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
 
+  // Check for --base argument for static deployments (e.g., GitHub Pages)
+  const baseArg = process.argv.find(arg => arg.startsWith('--base='));
+  const base = baseArg ? baseArg.split('=')[1] : undefined;
+
   console.log("building client...");
-  await viteBuild();
+  await viteBuild({
+    base,
+  });
 
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
