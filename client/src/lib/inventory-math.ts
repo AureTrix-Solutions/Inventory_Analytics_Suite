@@ -79,7 +79,8 @@ export function calculateBuffer(
   demands: number[],
   serviceLevel: number,
   trr: number,
-  alpha: number
+  alpha: number,
+  iterations: number = 50000
 ): CalculationResult {
   const n = demands.length;
   
@@ -176,7 +177,7 @@ export function calculateBuffer(
       if (nonZeroCount === 0) {
           safetyStock = 0;
       } else {
-          const numSims = 50000; // Reduced slightly for JS performance
+          const numSims = iterations;
           const totals = [];
           let simMeanAcc = 0;
           
@@ -223,7 +224,8 @@ export function calculateReverseTRR(
     demands: number[],
     targetBuffer: number,
     serviceLevel: number,
-    alpha: number
+    alpha: number,
+    iterations: number = 10000
 ): ReverseCalculationResult {
     const n = demands.length;
     const avg = demands.reduce((a, b) => a + b, 0) / n;
@@ -299,7 +301,7 @@ export function calculateReverseTRR(
         // Helper for simulation
         const simulateServiceLevel = (TRR: number) => {
             if (nonZero.length === 0) return 1;
-            const sims = 10000; // Reduced for perf
+            const sims = iterations;
             const totals = [];
             
             for(let i=0; i<sims; i++){

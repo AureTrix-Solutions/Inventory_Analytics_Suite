@@ -24,13 +24,20 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from "recharts";
-import { Info, Calculator, Activity, TrendingUp, Settings2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Info, Calculator, Activity, TrendingUp, Settings2, CheckCircle2, AlertCircle, Sliders } from "lucide-react";
 import {
   Tooltip as UITooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Slider } from "@/components/ui/slider";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function Home() {
   return (
@@ -75,6 +82,7 @@ function BufferCalculator() {
   const [serviceLevel, setServiceLevel] = useState(95);
   const [trr, setTrr] = useState(9);
   const [alpha, setAlpha] = useState(0.15);
+  const [iterations, setIterations] = useState(50000);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +97,7 @@ function BufferCalculator() {
       if (demands.length === 0) throw new Error("Please enter valid demand data.");
       if (demands.length > 48) throw new Error("Too many data points (max 48 recommended).");
 
-      const res = calculateBuffer(demands, serviceLevel, trr, alpha);
+      const res = calculateBuffer(demands, serviceLevel, trr, alpha, iterations);
       setResult(res);
     } catch (err: any) {
       setError(err.message);
@@ -189,6 +197,36 @@ function BufferCalculator() {
                 className="font-mono"
               />
             </div>
+
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="advanced-settings" className="border-none">
+                <AccordionTrigger className="py-2 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4" />
+                    Advanced Settings
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4 pb-2">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label className="text-xs font-medium text-slate-500">Simulation Iterations</Label>
+                        <span className="text-xs font-mono text-slate-600 dark:text-slate-400">{iterations.toLocaleString()}</span>
+                      </div>
+                      <Slider
+                        value={[iterations]}
+                        min={10000}
+                        max={100000}
+                        step={5000}
+                        onValueChange={(vals) => setIterations(vals[0])}
+                        className="py-2"
+                      />
+                      <p className="text-[10px] text-slate-400">Higher iterations increase accuracy but slow down calculation.</p>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
 
           <Button onClick={handleCalculate} className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-900/10 transition-all active:scale-[0.98]">
@@ -260,7 +298,7 @@ function BufferCalculator() {
               <strong className="text-slate-900 dark:text-slate-200">Analysis Method:</strong>{" "}
               {result.predictable
                 ? "The demand pattern follows a normal distribution. Standard safety stock formulas were used."
-                : "The demand pattern is intermittent or non-normal. A Monte Carlo simulation (50,000 iterations) was used to determine safety stock requirements accurately."}
+                : `The demand pattern is intermittent or non-normal. A Monte Carlo simulation (${iterations.toLocaleString()} iterations) was used to determine safety stock requirements accurately.`}
             </div>
           </>
         )}
@@ -274,6 +312,7 @@ function TRRCalculator() {
     const [buffer, setBuffer] = useState(120);
     const [serviceLevel, setServiceLevel] = useState(95);
     const [alpha, setAlpha] = useState(0.15);
+    const [iterations, setIterations] = useState(10000);
     const [result, setResult] = useState<ReverseCalculationResult | null>(null);
     const [error, setError] = useState<string | null>(null);
   
@@ -287,7 +326,7 @@ function TRRCalculator() {
   
         if (demands.length === 0) throw new Error("Please enter valid demand data.");
   
-        const res = calculateReverseTRR(demands, buffer, serviceLevel, alpha);
+        const res = calculateReverseTRR(demands, buffer, serviceLevel, alpha, iterations);
         setResult(res);
       } catch (err: any) {
         setError(err.message);
@@ -356,6 +395,36 @@ function TRRCalculator() {
                   className="font-mono"
                 />
             </div>
+
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="advanced-settings" className="border-none">
+                <AccordionTrigger className="py-2 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4" />
+                    Advanced Settings
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4 pb-2">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label className="text-xs font-medium text-slate-500">Simulation Iterations</Label>
+                        <span className="text-xs font-mono text-slate-600 dark:text-slate-400">{iterations.toLocaleString()}</span>
+                      </div>
+                      <Slider
+                        value={[iterations]}
+                        min={5000}
+                        max={50000}
+                        step={2500}
+                        onValueChange={(vals) => setIterations(vals[0])}
+                        className="py-2"
+                      />
+                      <p className="text-[10px] text-slate-400">Higher iterations increase accuracy but slow down calculation.</p>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
   
             <Button onClick={handleCalculate} className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-900/10 transition-all active:scale-[0.98]">
               Calculate Max TRR
