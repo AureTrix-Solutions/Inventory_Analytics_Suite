@@ -337,6 +337,16 @@ function BufferCalculator() {
                 ? "The demand pattern follows a normal distribution. Standard safety stock formulas were used."
                 : `The demand pattern is intermittent or non-normal. A Monte Carlo simulation (${iterations.toLocaleString()} iterations) was used to determine safety stock requirements accurately.`}
             </div>
+
+            {result.mase >= 1.0 && chartData.length < 48 && (
+              <Alert className="bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-800">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Forecast Accuracy Below Baseline</AlertTitle>
+                <AlertDescription>
+                  You're using {chartData.length} month{chartData.length !== 1 ? 's' : ''} of data. Consider adding up to 48 months of historical demand for improved forecast accuracy.
+                </AlertDescription>
+              </Alert>
+            )}
           </>
         )}
       </div>
