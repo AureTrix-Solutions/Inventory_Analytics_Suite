@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Discussions
+    url: https://github.com/blasthappy82/Inventory_Analytics_Suite/discussions
+    about: Ask questions and discuss ideas in GitHub Discussions
+  - name: Documentation
+    url: https://github.com/blasthappy82/Inventory_Analytics_Suite/tree/main/docs
+    about: Check out our documentation for calculation methodology and architecture details

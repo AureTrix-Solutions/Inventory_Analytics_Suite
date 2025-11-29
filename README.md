@@ -111,7 +111,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture docum
 
 ## Contributing
 
-We welcome contributions! Please see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please see our [Contributing Guidelines](.github/CONTRIBUTING.md).
+
+Please also review our [Code of Conduct](.github/CODE_OF_CONDUCT.md) before participating.
 
 ## License
 

@@ -51,9 +51,15 @@ inventory-analytics-suite/
 │   └── index.html            # HTML template
 ├── docs/                      # Documentation
 │   ├── ARCHITECTURE.md       # This file
-│   ├── CALCULATIONS.md       # Mathematical documentation
-│   └── CONTRIBUTING.md       # Contribution guidelines
+│   └── CALCULATIONS.md       # Mathematical documentation
 ├── .github/
+│   ├── CODE_OF_CONDUCT.md    # Community guidelines
+│   ├── CONTRIBUTING.md       # Contribution guidelines
+│   ├── SECURITY.md           # Security policy
+│   ├── ISSUE_TEMPLATE/       # Issue templates
+│   │   ├── bug_report.md
+│   │   ├── feature_request.md
+│   │   └── config.yml
 │   └── workflows/
 │       └── deploy.yml        # GitHub Pages deployment
 ├── netlify.toml              # Netlify configuration
