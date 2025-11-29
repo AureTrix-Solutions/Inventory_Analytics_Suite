@@ -6,9 +6,10 @@ This document describes the statistical methods and formulas used in the Invento
 
 1. [Demand Forecasting](#demand-forecasting)
 2. [Normality Testing](#normality-testing)
-3. [Buffer Calculation](#buffer-calculation)
-4. [Reverse TRR Calculation](#reverse-trr-calculation)
-5. [Monte Carlo Simulation](#monte-carlo-simulation)
+3. [Forecast Accuracy (MASE)](#forecast-accuracy-mase)
+4. [Buffer Calculation](#buffer-calculation)
+5. [Reverse TRR Calculation](#reverse-trr-calculation)
+6. [Monte Carlo Simulation](#monte-carlo-simulation)
 
 ---
 
@@ -101,6 +102,61 @@ A²* = A² × (1 + 0.75/n + 2.25/n²)
 - If A²* ≥ 0.787: Data is not normal (use Croston/Monte Carlo)
 
 **Note:** For datasets with fewer than 5 data points, we skip the Anderson-Darling test and default to the Normal method, as small samples don't provide reliable normality testing.
+
+---
+
+## Forecast Accuracy (MASE)
+
+### Mean Absolute Scaled Error
+
+MASE (Mean Absolute Scaled Error) measures forecast accuracy by comparing the forecast error to a naive baseline (using the previous observation as the forecast).
+
+**Step 1: Calculate forecast Mean Absolute Error (MAE)**
+```
+Forecast MAE = (1/n) × Σ|d_i - ŷ|
+```
+
+Where:
+- `d_i` = actual demand in period i
+- `ŷ` = Croston SBA forecast
+- `n` = number of periods
+
+**Step 2: Calculate naive Mean Absolute Error**
+```
+Naive MAE = (1/(n-1)) × Σ|d_i - d_{i-1}|
+```
+
+This represents the error if we simply used the last observation as our forecast.
+
+**Step 3: Calculate MASE**
+```
+MASE = Forecast MAE / Naive MAE
+```
+
+### Interpretation
+
+| MASE Value | Quality | Meaning |
+|------------|---------|---------|
+| < 0.5 | Excellent | Forecast is significantly better than naive |
+| 0.5 - 0.8 | Good | Forecast outperforms naive method |
+| 0.8 - 1.0 | Fair | Forecast slightly better than naive |
+| ≥ 1.0 | Poor | Naive method would perform equally or better |
+
+### Quality Indicators
+
+The application displays MASE with color-coded quality labels:
+- **Excellent** (green): MASE < 0.5
+- **Good** (blue): MASE 0.5 - 0.8
+- **Fair** (amber): MASE 0.8 - 1.0
+- **Poor** (red): MASE ≥ 1.0
+
+### Data Sufficiency Warning
+
+When MASE is "Poor" (≥ 1.0) and the user has provided fewer than 48 months of historical data, a warning is displayed suggesting they add more data. This is because:
+
+1. Insufficient historical data often causes poor forecast accuracy
+2. Adding more data is preferable to statistical adjustments
+3. 48 months provides enough history to capture demand patterns
 
 ---
 

@@ -88,6 +88,7 @@ The calculation engine contains all statistical algorithms:
 |----------|---------|
 | `crostonSBA()` | Croston's method with SBA bias correction |
 | `andersonDarling()` | Normality test for demand distribution |
+| `computeMASE()` | Mean Absolute Scaled Error for forecast accuracy |
 | `normalCDF()` / `normalInverseCDF()` | Normal distribution functions |
 | `calculateBuffer()` | Main buffer calculation orchestrator |
 | `calculateReverseTRR()` | Reverse TRR calculation |
