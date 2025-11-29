@@ -378,20 +378,25 @@ function TRRCalculator() {
           <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Settings2 className="w-5 h-5 text-green-600" />
-              Constraints
+              Parameters
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
             <div className="space-y-3">
-              <Label htmlFor="trr-demand">Historical Demand (Monthly)</Label>
+              <Label htmlFor="trr-demand" className="flex justify-between">
+                Historical Demand (Monthly)
+                <span className="text-xs text-slate-400 font-normal">Oldest → Newest</span>
+              </Label>
               <Textarea
                 id="trr-demand"
                 value={demandInput}
                 onChange={(e) => setDemandInput(e.target.value)}
                 placeholder="Enter monthly demand values..."
-                className="font-mono text-sm min-h-[150px] resize-none bg-slate-50 dark:bg-slate-900 focus:border-green-500 focus:ring-green-500/20"
+                className="font-mono text-sm min-h-[150px] resize-none bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-green-500 focus:ring-green-500/20"
               />
-              <p className="text-xs text-slate-500">Enter units sold per month.</p>
+              <p className="text-xs text-slate-500">
+                Enter units sold per month. Supports up to 48 months. Enter 0 for months with no demand.
+              </p>
             </div>
             
             <div className="grid gap-2">
@@ -407,7 +412,7 @@ function TRRCalculator() {
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="trr-service">Target Service Level (%)</Label>
+                <Label htmlFor="trr-service">Service Level Goal (%)</Label>
                 <Input
                   id="trr-service"
                   type="number"
@@ -421,7 +426,10 @@ function TRRCalculator() {
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="trr-alpha">Smoothing Constant (α)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="trr-alpha">Smoothing Constant (α)</Label>
+                  <InfoPopover content="Controls responsiveness of Croston's method. 0.15 is industry standard. Higher values react faster to recent changes." />
+                </div>
                 <Input
                   id="trr-alpha"
                   type="number"
