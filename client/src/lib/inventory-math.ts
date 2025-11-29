@@ -81,6 +81,7 @@ export interface ReverseCalculationResult {
   predictable: boolean;
   explanation: string;
   pValue: number;
+  mase: number;
 }
 
 // Helper: Croston's Method with SBA correction
@@ -124,6 +125,20 @@ function computeCroston(demands: number[], alpha: number) {
   const forecast = crostonForecast * (1 - alpha / 2);
 
   return { smoothedSize, smoothedInterval, nonZero, forecast };
+}
+
+// Helper: Compute MASE (Mean Absolute Scaled Error)
+function computeMASE(demands: number[], forecast: number): number {
+  const n = demands.length;
+  if (n === 0) return 0;
+  
+  const forecastMae = demands.reduce((a, x) => a + Math.abs(x - forecast), 0) / n;
+  const diffs = [];
+  for (let i = 1; i < n; i++) {
+      diffs.push(Math.abs(demands[i] - demands[i - 1]));
+  }
+  const naiveMae = diffs.length > 0 ? diffs.reduce((a, b) => a + b, 0) / diffs.length : 0;
+  return naiveMae > 0 ? forecastMae / naiveMae : 0;
 }
 
 // Helper: Anderson-Darling normality test
@@ -214,13 +229,7 @@ export function calculateBuffer(
   const nonZeroCount = nonZero.length;
 
   // MASE (Mean Absolute Scaled Error)
-  const forecastMae = demands.reduce((a, x) => a + Math.abs(x - forecast), 0) / n;
-  const diffs = [];
-  for (let i = 1; i < n; i++) {
-      diffs.push(Math.abs(demands[i] - demands[i - 1]));
-  }
-  const naiveMae = diffs.length > 0 ? diffs.reduce((a, b) => a + b, 0) / diffs.length : 0;
-  const mase = naiveMae > 0 ? forecastMae / naiveMae : 0;
+  const mase = computeMASE(demands, forecast);
 
   // Anderson-Darling normality test
   const { predictable, pValue } = andersonDarlingTest(demands, avg, std);
@@ -309,7 +318,8 @@ export function calculateReverseTRR(
             std: 0,
             predictable: true,
             explanation: 'No demand data - buffer supports maximum TRR.',
-            pValue: 1
+            pValue: 1,
+            mase: 0
         };
     }
 
@@ -321,6 +331,9 @@ export function calculateReverseTRR(
 
     // Croston with SBA
     const { smoothedInterval, nonZero, forecast } = computeCroston(demands, alpha);
+
+    // Compute MASE (Mean Absolute Scaled Error)
+    const mase = computeMASE(demands, forecast);
 
     // Anderson-Darling normality test
     const { predictable, pValue } = andersonDarlingTest(demands, avg, std);
@@ -428,6 +441,7 @@ export function calculateReverseTRR(
         std,
         predictable,
         explanation,
-        pValue
+        pValue,
+        mase
     };
 }

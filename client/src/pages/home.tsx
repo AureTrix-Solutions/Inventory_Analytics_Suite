@@ -388,6 +388,11 @@ function TRRCalculator() {
     useEffect(() => {
         handleCalculate();
     }, []);
+
+    const chartData = demandInput
+      .split(/[\s,]+/)
+      .map((v, i) => ({ index: i + 1, value: parseFloat(v.trim()) }))
+      .filter(d => !isNaN(d.value));
   
     return (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -522,6 +527,35 @@ function TRRCalculator() {
                         />
                     </div>
                     
+                    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="text-lg flex justify-between items-center">
+                          <span>Demand Analysis</span>
+                          <Badge variant={result.predictable ? "default" : "secondary"} className={result.predictable ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-amber-100 text-amber-800 hover:bg-amber-100"}>
+                            {result.predictable ? "Predictable (Normal)" : "Intermittent / Non-Normal"}
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription>
+                          Forecast Error (MASE): {result.mase.toFixed(3)} ({getMaseLabel(result.mase)}) • Anderson-Darling p-value: {result.pValue?.toFixed(3) ?? "N/A"}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 24 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="index" tick={{fontSize: 12}} tickLine={false} axisLine={false} label={{ value: 'Month', position: 'insideBottom', offset: -5, fontSize: 11, fill: '#94a3b8' }} />
+                            <YAxis tick={{fontSize: 12}} tickLine={false} axisLine={false} label={{ value: 'Units', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#94a3b8' }} />
+                            <Tooltip 
+                              cursor={{fill: 'rgba(0,0,0,0.05)'}}
+                              contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
+                            />
+                            <Bar dataKey="value" fill="#22c55e" radius={[4, 4, 0, 0]} name="Monthly Demand" />
+                            <ReferenceLine y={result.forecast} stroke="#ef4444" strokeDasharray="3 3" label={{ value: `Forecast: ${result.forecast.toFixed(2)}`, position: 'insideTopRight', fill: '#ef4444', fontSize: 12 }} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
                     <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
                         <CardHeader>
@@ -546,6 +580,16 @@ function TRRCalculator() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {result.mase >= 1.0 && chartData.length < 48 && (
+                      <Alert className="bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-800">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Forecast Accuracy Below Baseline</AlertTitle>
+                        <AlertDescription>
+                          You're using {chartData.length} month{chartData.length !== 1 ? 's' : ''} of data. Consider adding up to 48 months of historical demand for improved forecast accuracy.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                 </>
             )}
         </div>
