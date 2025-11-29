@@ -80,19 +80,24 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // Server configuration
+  // PORT: Use environment variable, default to 5000
+  // HOST: Use 0.0.0.0 for cloud environments (Replit), localhost for Windows compatibility
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  const isWindows = process.platform === "win32";
+  const host = process.env.HOST || (isWindows ? "localhost" : "0.0.0.0");
+  
+  // reusePort is not supported on Windows
+  const listenOptions: { port: number; host: string; reusePort?: boolean } = {
+    port,
+    host,
+  };
+  
+  if (!isWindows) {
+    listenOptions.reusePort = true;
+  }
+  
+  httpServer.listen(listenOptions, () => {
+    log(`serving on http://${host}:${port}`);
+  });
 })();
