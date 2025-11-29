@@ -12,7 +12,7 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
 
 Before submitting a bug report:
 1. Check the [existing issues](https://github.com/blasthappy82/Inventory_Analytics_Suite/issues) to avoid duplicates
-2. Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md)
+2. Use the bug report template (automatically shown when creating a new issue)
 
 Include:
 - Clear description of the issue
@@ -25,7 +25,7 @@ Include:
 
 We welcome feature suggestions! Please:
 1. Check existing issues and discussions first
-2. Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md)
+2. Use the feature request template (automatically shown when creating a new issue)
 3. Explain the use case and expected benefit
 
 ### Pull Requests
