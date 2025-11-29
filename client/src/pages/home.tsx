@@ -119,9 +119,9 @@ export default function Home() {
 
 function BufferCalculator() {
   const [demandInput, setDemandInput] = useState("8\n12\n9\n0\n5\n0\n11\n7\n0\n4");
-  const [serviceLevel, setServiceLevel] = useState(90);
-  const [trr, setTrr] = useState(9);
-  const [alpha, setAlpha] = useState(0.15);
+  const [serviceLevel, setServiceLevel] = useState("90");
+  const [trr, setTrr] = useState("9");
+  const [alpha, setAlpha] = useState("0.15");
   const [iterations, setIterations] = useState(50000);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -134,13 +134,17 @@ function BufferCalculator() {
         .map(v => parseFloat(v.trim()))
         .filter(v => !isNaN(v));
 
+      const serviceLevelNum = parseFloat(serviceLevel);
+      const trrNum = parseFloat(trr);
+      const alphaNum = parseFloat(alpha);
+
       if (demands.length === 0) throw new Error("Please enter valid demand data.");
       if (demands.length > 48) throw new Error("Too many data points (max 48 recommended).");
-      if (serviceLevel < 50 || serviceLevel > 99.99) throw new Error("Service level must be between 50% and 99.99%.");
-      if (alpha < 0.01 || alpha > 1) throw new Error("Smoothing constant must be between 0.01 and 1.0.");
-      if (trr < 0) throw new Error("TRR / Lead Time must be 0 or greater.");
+      if (isNaN(serviceLevelNum) || serviceLevelNum < 50 || serviceLevelNum > 99.99) throw new Error("Service level must be between 50% and 99.99%.");
+      if (isNaN(alphaNum) || alphaNum < 0.01 || alphaNum > 1) throw new Error("Smoothing constant must be between 0.01 and 1.0.");
+      if (isNaN(trrNum) || trrNum < 0) throw new Error("TRR / Lead Time must be 0 or greater.");
 
-      const res = calculateBuffer(demands, serviceLevel, trr, alpha, iterations);
+      const res = calculateBuffer(demands, serviceLevelNum, trrNum, alphaNum, iterations);
       setResult(res);
     } catch (err: any) {
       setError(err.message);
@@ -195,7 +199,7 @@ function BufferCalculator() {
                 id="service-level"
                 type="number"
                 value={serviceLevel}
-                onChange={(e) => setServiceLevel(Number(e.target.value))}
+                onChange={(e) => setServiceLevel(e.target.value)}
                 min={50}
                 max={99.99}
                 step={0.1}
@@ -212,7 +216,7 @@ function BufferCalculator() {
                 id="trr"
                 type="number"
                 value={trr}
-                onChange={(e) => setTrr(Number(e.target.value))}
+                onChange={(e) => setTrr(e.target.value)}
                 min={0}
                 step={0.1}
                 className="font-mono"
@@ -228,7 +232,7 @@ function BufferCalculator() {
                 id="alpha"
                 type="number"
                 value={alpha}
-                onChange={(e) => setAlpha(Number(e.target.value))}
+                onChange={(e) => setAlpha(e.target.value)}
                 min={0.01}
                 max={1}
                 step={0.01}
@@ -357,9 +361,9 @@ function BufferCalculator() {
 
 function TRRCalculator() {
     const [demandInput, setDemandInput] = useState("8\n12\n9\n0\n5\n0\n11\n7\n0\n4");
-    const [buffer, setBuffer] = useState(120);
-    const [serviceLevel, setServiceLevel] = useState(90);
-    const [alpha, setAlpha] = useState(0.15);
+    const [buffer, setBuffer] = useState("120");
+    const [serviceLevel, setServiceLevel] = useState("90");
+    const [alpha, setAlpha] = useState("0.15");
     const [iterations, setIterations] = useState(50000);
     const [result, setResult] = useState<ReverseCalculationResult | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -372,12 +376,16 @@ function TRRCalculator() {
           .map(v => parseFloat(v.trim()))
           .filter(v => !isNaN(v));
   
+        const bufferNum = parseFloat(buffer);
+        const serviceLevelNum = parseFloat(serviceLevel);
+        const alphaNum = parseFloat(alpha);
+
         if (demands.length === 0) throw new Error("Please enter valid demand data.");
-        if (buffer <= 0) throw new Error("Current buffer must be greater than 0.");
-        if (serviceLevel < 50 || serviceLevel > 99.99) throw new Error("Service level must be between 50% and 99.99%.");
-        if (alpha < 0.01 || alpha > 1) throw new Error("Smoothing constant must be between 0.01 and 1.0.");
+        if (isNaN(bufferNum) || bufferNum <= 0) throw new Error("Current buffer must be greater than 0.");
+        if (isNaN(serviceLevelNum) || serviceLevelNum < 50 || serviceLevelNum > 99.99) throw new Error("Service level must be between 50% and 99.99%.");
+        if (isNaN(alphaNum) || alphaNum < 0.01 || alphaNum > 1) throw new Error("Smoothing constant must be between 0.01 and 1.0.");
   
-        const res = calculateReverseTRR(demands, buffer, serviceLevel, alpha, iterations);
+        const res = calculateReverseTRR(demands, bufferNum, serviceLevelNum, alphaNum, iterations);
         setResult(res);
       } catch (err: any) {
         setError(err.message);
@@ -428,7 +436,7 @@ function TRRCalculator() {
                   id="buffer"
                   type="number"
                   value={buffer}
-                  onChange={(e) => setBuffer(Number(e.target.value))}
+                  onChange={(e) => setBuffer(e.target.value)}
                   min={1}
                   className="font-mono"
                 />
@@ -443,7 +451,7 @@ function TRRCalculator() {
                   id="trr-service"
                   type="number"
                   value={serviceLevel}
-                  onChange={(e) => setServiceLevel(Number(e.target.value))}
+                  onChange={(e) => setServiceLevel(e.target.value)}
                   min={50}
                   max={99.99}
                   step={0.1}
@@ -460,7 +468,7 @@ function TRRCalculator() {
                   id="trr-alpha"
                   type="number"
                   value={alpha}
-                  onChange={(e) => setAlpha(Number(e.target.value))}
+                  onChange={(e) => setAlpha(e.target.value)}
                   min={0.01}
                   max={1}
                   step={0.01}
