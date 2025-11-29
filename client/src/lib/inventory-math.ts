@@ -229,17 +229,20 @@ export function calculateBuffer(
   const p = Math.min(0.9999, Math.max(0.5, serviceLevel / 100));
   const z = normInv(p);
 
-  // Base stock = forecast per period × number of periods in TRR
-  const baseStock = forecast * trrPeriods;
+  let baseStock = 0;
   let safetyStock = 0;
   let method: 'Normal' | 'Monte Carlo' = 'Normal';
 
   if (predictable) {
-      // Safety stock = z × std × √(periods in TRR)
+      // For normal/predictable demand, use sample mean (μ) for base stock
+      // Base stock = μ × L (expected demand during lead time)
+      baseStock = avg * trrPeriods;
+      // Safety stock = z × σ × √L
       safetyStock = z * std * Math.sqrt(trrPeriods);
   } else {
       method = 'Monte Carlo';
       if (nonZeroCount === 0) {
+          baseStock = 0;
           safetyStock = 0;
       } else {
           const numSims = iterations;
@@ -266,6 +269,10 @@ export function calculateBuffer(
           const quantileIndex = Math.min(Math.floor(p * numSims), numSims - 1);
           const quantile = totals[quantileIndex];
           const simMean = simMeanAcc / numSims;
+          
+          // For Monte Carlo: base stock = simulated mean, safety stock = quantile - mean
+          // This ensures total buffer = quantile (the target service level)
+          baseStock = simMean;
           safetyStock = Math.max(0, quantile - simMean);
       }
   }
@@ -329,14 +336,15 @@ export function calculateReverseTRR(
     let explanation = '';
 
     if (predictable) {
-        // Solve: Buffer = forecast × TRR_periods + z × std × √TRR_periods
-        // Let y = √TRR_periods, then: forecast × y² + z × std × y - Buffer = 0
+        // For normal/predictable demand, use sample mean (μ) instead of Croston forecast
+        // Solve: Buffer = μ × TRR_periods + z × std × √TRR_periods
+        // Let y = √TRR_periods, then: μ × y² + z × std × y - Buffer = 0
         
-        const a = forecast;
+        const a = avg;  // Use sample mean for predictable demand
         const b = z * std;
         const c = -targetBuffer;
         
-        // Handle edge case where forecast is 0 or very small
+        // Handle edge case where mean is 0 or very small
         if (a < 1e-10) {
             if (b > 0 && targetBuffer > 0) {
                 // Buffer = z × std × √TRR => √TRR = Buffer / (z × std)
@@ -346,7 +354,7 @@ export function calculateReverseTRR(
                 // Effectively unlimited - use max
                 maxTRRPeriods = maxTrrPeriods;
             }
-            explanation = `Low/zero demand forecast - buffer supports extended TRR.`;
+            explanation = `Low/zero demand - buffer supports extended TRR.`;
         } else {
             const discriminant = b * b - 4 * a * c;
             

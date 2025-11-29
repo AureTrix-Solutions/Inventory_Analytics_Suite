@@ -108,55 +108,67 @@ A²* = A² × (1 + 0.75/n + 2.25/n²)
 
 ### Normal Distribution Method
 
-When demand is normally distributed:
+When demand is normally distributed (Anderson-Darling p > 0.05):
 
 **Step 1: Calculate demand statistics**
 ```
-μ = mean demand per period
-σ = standard deviation of demand
+μ = sample mean demand per period
+σ = sample standard deviation of demand
 ```
 
-**Step 2: Calculate demand during lead time**
+**Step 2: Calculate base stock (expected demand during lead time)**
 ```
-μ_L = μ × L
-σ_L = σ × √L
+Base Stock = μ × L
 ```
 
 Where `L` = lead time in periods
 
 **Step 3: Calculate safety stock**
 ```
-SS = z_α × σ_L
+Safety Stock = z_α × σ × √L
 ```
 
 Where `z_α` = inverse normal CDF at service level α
+
+**Step 4: Total buffer**
+```
+Total Buffer = Base Stock + Safety Stock = μ × L + z_α × σ × √L
+```
 
 **Example:**
 - Service level = 95% → z_α = 1.645
 - Service level = 99% → z_α = 2.326
 
-### Intermittent Demand Method
+**Note:** For predictable demand, we use the sample mean (μ) rather than Croston's forecast, as the SBA bias correction is only appropriate for intermittent demand patterns.
 
-When demand is intermittent (uses Croston's method):
+### Intermittent Demand Method (Monte Carlo)
 
-**Step 1: Get Croston forecast**
+When demand fails the normality test (Anderson-Darling p ≤ 0.05), we use Monte Carlo simulation:
+
+**Step 1: Get Croston parameters**
 ```
 ŷ = Croston SBA forecast (mean demand rate)
+p̂ = smoothed inter-arrival interval
 ```
 
-**Step 2: Calculate variance**
-
-For intermittent demand, variance is estimated from non-zero demands:
+**Step 2: Simulate demand scenarios**
 ```
-σ² = variance of non-zero demand values
-```
-
-**Step 3: Calculate buffer**
-```
-Buffer = z_α × σ × √L + (ŷ × L × adjustment_factor)
+For i = 1 to N (typically N = 50,000):
+    - Generate demand events using exponential inter-arrival times
+    - Sum total demand during lead time period
+    - Record result
 ```
 
-The adjustment factor accounts for the probability of demand occurrence.
+**Step 3: Calculate buffer from simulation**
+```
+- Sort simulated demands
+- Find quantile at target service level
+- Base Stock = simulated mean demand
+- Safety Stock = quantile - simulated mean
+- Total Buffer = quantile (ensures service level is met)
+```
+
+This approach ensures the total buffer equals the simulated quantile, directly satisfying the target service level.
 
 ---
 
