@@ -38,12 +38,12 @@ This project follows a standard open source code of conduct. Please be respectfu
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/inventory-analytics-suite.git
-   cd inventory-analytics-suite
+   git clone https://github.com/YOUR_USERNAME/Inventory_Analytics_Suite.git
+   cd Inventory_Analytics_Suite
    ```
 3. Add the upstream remote:
    ```bash
-   git remote add upstream https://github.com/ORIGINAL_OWNER/inventory-analytics-suite.git
+   git remote add upstream https://github.com/blasthappy82/Inventory_Analytics_Suite.git
    ```
 
 ---
@@ -227,9 +227,9 @@ When implementing statistical methods:
  * Reference: Syntetos & Boylan (2001)
  * 
  * @param demands - Array of historical demand values
- * @param alpha - Smoothing constant (default 0.1)
+ * @param alpha - Smoothing constant (default 0.15)
  */
-export function crostonSBA(demands: number[], alpha = 0.1): number {
+export function crostonSBA(demands: number[], alpha = 0.15): number {
   // Implementation...
 }
 ```
@@ -307,7 +307,7 @@ By contributing, you agree that your contributions will be licensed under the GN
 
 ## Questions?
 
-- Open a [GitHub Discussion](https://github.com/ORIGINAL_OWNER/inventory-analytics-suite/discussions)
-- Check existing [Issues](https://github.com/ORIGINAL_OWNER/inventory-analytics-suite/issues)
+- Open a [GitHub Discussion](https://github.com/blasthappy82/Inventory_Analytics_Suite/discussions)
+- Check existing [Issues](https://github.com/blasthappy82/Inventory_Analytics_Suite/issues)
 
 Thank you for contributing!

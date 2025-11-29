@@ -65,7 +65,7 @@ inventory-analytics-suite/
 ## Technology Stack
 
 ### Frontend Framework
-- **React 18** - Component-based UI library
+- **React 19** - Component-based UI library
 - **TypeScript** - Type-safe JavaScript
 - **Vite** - Fast build tool and dev server
 
@@ -99,7 +99,7 @@ The application uses a tabbed interface with two main calculators:
 
 1. **Buffer Calculator Tab**
    - Demand data input (1-48 months)
-   - Service level slider (50-99.9%)
+   - Service level slider (50-99.99%)
    - Lead time input
    - Results display with charts
 

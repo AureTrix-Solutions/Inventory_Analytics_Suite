@@ -14,7 +14,7 @@ Try the application online:
 ### Buffer Calculator
 Calculate optimal safety stock levels based on:
 - Historical monthly demand data (1-48 months)
-- Desired service level (50-99.9%)
+- Desired service level (50-99.99%)
 - Supplier lead time
 - Automatic demand pattern detection (Normal vs. Intermittent)
 
@@ -22,7 +22,7 @@ Calculate optimal safety stock levels based on:
 Determine the maximum affordable lead time given:
 - Current buffer/safety stock levels
 - Historical demand patterns
-- Target service level
+- Service level goal
 
 ## Statistical Methods
 

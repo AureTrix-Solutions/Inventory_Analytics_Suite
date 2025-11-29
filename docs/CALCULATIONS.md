@@ -46,7 +46,7 @@ z'_t = α × z_t + (1 - α) × z'_{t-1}
 p'_t = α × p_t + (1 - α) × p'_{t-1}
 ```
 
-Where α = 0.1 (smoothing constant)
+Where α = 0.15 (smoothing constant, industry standard)
 
 **Step 3: Forecast**
 ```
@@ -210,7 +210,7 @@ For demand patterns that don't fit normal or Croston models, we use Monte Carlo 
 
 **Step 2: Generate random scenarios**
 ```
-For i = 1 to N (typically N = 10,000):
+For i = 1 to N (typically N = 50,000):
     - Simulate demand for lead time period
     - Sum total demand during lead time
     - Record result
@@ -274,7 +274,7 @@ function normalInverseCDF(p) {
 | Parameter | Valid Range | Notes |
 |-----------|-------------|-------|
 | Demand data | 1-48 values | Non-negative numbers |
-| Service level | 50-99.9% | Expressed as decimal |
+| Service level | 50-99.99% | Expressed as decimal |
 | Lead time | ≥ 0 | In same units as demand periods |
 | Buffer (reverse) | > 0 | Must be positive |
 
