@@ -2,6 +2,13 @@
 
 An open-source inventory buffer calculator that determines optimal safety stock levels and Time to Reliable Replenishment (TRR) using statistical forecasting methods. All calculations run entirely in your browser - your data never leaves your device.
 
+## Live Demo
+
+Try the application online:
+
+- **Netlify**: [buffercalculator.netlify.app](https://buffercalculator.netlify.app/)
+- **GitHub Pages**: [blasthappy82.github.io/Inventory_Analytics_Suite](https://blasthappy82.github.io/Inventory_Analytics_Suite/)
+
 ## Features
 
 ### Buffer Calculator
@@ -38,8 +45,8 @@ See [docs/CALCULATIONS.md](docs/CALCULATIONS.md) for detailed mathematical docum
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/inventory-analytics-suite.git
-cd inventory-analytics-suite
+git clone https://github.com/blasthappy82/Inventory_Analytics_Suite.git
+cd Inventory_Analytics_Suite
 
 # Install dependencies
 npm install
@@ -123,8 +130,8 @@ All calculations are performed entirely in your browser. Your demand data never 
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/inventory-analytics-suite/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/inventory-analytics-suite/discussions)
+- **Issues**: [GitHub Issues](https://github.com/blasthappy82/Inventory_Analytics_Suite/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/blasthappy82/Inventory_Analytics_Suite/discussions)
 
 ## Acknowledgments
 

@@ -71,6 +71,40 @@ export default function Home() {
         </Tabs>
 
         <MethodologySection />
+
+        <footer className="text-center text-sm text-slate-500 dark:text-slate-400 pt-8 pb-4 border-t border-slate-200 dark:border-slate-800">
+          <p className="mb-2">
+            Open source under AGPL-3.0 license
+          </p>
+          <div className="flex justify-center gap-4">
+            <a 
+              href="https://github.com/blasthappy82/Inventory_Analytics_Suite" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              GitHub
+            </a>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
+            <a 
+              href="https://buffercalculator.netlify.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              Netlify
+            </a>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
+            <a 
+              href="https://blasthappy82.github.io/Inventory_Analytics_Suite/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              GitHub Pages
+            </a>
+          </div>
+        </footer>
       </div>
     </div>
   );
