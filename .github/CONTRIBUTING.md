@@ -16,12 +16,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ## Code of Conduct
 
-This project follows a standard open source code of conduct. Please be respectful and constructive in all interactions.
-
-- Be welcoming and inclusive
-- Be respectful of differing viewpoints
-- Accept constructive criticism gracefully
-- Focus on what's best for the community
+Please review our [Code of Conduct](https://github.com/BlastHappy82/Inventory_Analytics_Suite?tab=coc-ov-file) before contributing.
 
 ---
 
