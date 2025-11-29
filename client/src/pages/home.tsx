@@ -38,11 +38,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-function getMaseLabel(mase: number): string {
-  if (mase < 0.5) return "Excellent";
-  if (mase < 0.8) return "Good";
-  if (mase < 1.0) return "Fair";
-  return "Poor";
+function getMaseLabel(mase: number): { label: string; colorClass: string } {
+  if (mase < 0.5) return { label: "Excellent", colorClass: "text-green-600 dark:text-green-400" };
+  if (mase < 0.8) return { label: "Good", colorClass: "text-blue-600 dark:text-blue-400" };
+  if (mase < 1.0) return { label: "Fair", colorClass: "text-amber-600 dark:text-amber-400" };
+  return { label: "Poor", colorClass: "text-red-600 dark:text-red-400" };
 }
 
 export default function Home() {
@@ -311,7 +311,7 @@ function BufferCalculator() {
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Forecast Error (MASE): {result.mase.toFixed(3)} ({getMaseLabel(result.mase)}) • Anderson-Darling p-value: {result.pValue?.toFixed(3) ?? "N/A"}
+                  Forecast Error (MASE): {result.mase.toFixed(3)} (<span className={`font-medium ${getMaseLabel(result.mase).colorClass}`}>{getMaseLabel(result.mase).label}</span>) • Anderson-Darling p-value: {result.pValue?.toFixed(3) ?? "N/A"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[300px] w-full">
@@ -536,7 +536,7 @@ function TRRCalculator() {
                           </Badge>
                         </CardTitle>
                         <CardDescription>
-                          Forecast Error (MASE): {result.mase.toFixed(3)} ({getMaseLabel(result.mase)}) • Anderson-Darling p-value: {result.pValue?.toFixed(3) ?? "N/A"}
+                          Forecast Error (MASE): {result.mase.toFixed(3)} (<span className={`font-medium ${getMaseLabel(result.mase).colorClass}`}>{getMaseLabel(result.mase).label}</span>) • Anderson-Darling p-value: {result.pValue?.toFixed(3) ?? "N/A"}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="h-[300px] w-full">
