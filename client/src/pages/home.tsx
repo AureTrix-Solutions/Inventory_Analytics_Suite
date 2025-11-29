@@ -187,19 +187,20 @@ function BufferCalculator() {
 
           <div className="space-y-4">
             <div className="grid gap-2">
-              <Label htmlFor="service-level">Service Level Goal (%)</Label>
-              <div className="flex items-center gap-4">
-                <Input
-                  id="service-level"
-                  type="number"
-                  value={serviceLevel}
-                  onChange={(e) => setServiceLevel(Number(e.target.value))}
-                  min={50}
-                  max={99.99}
-                  step={0.1}
-                  className="font-mono"
-                />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="service-level">Service Level Goal (%)</Label>
+                <InfoPopover content="Target probability of not stocking out during lead time. 90% is common for general inventory; 95-99% for critical parts. Higher levels require more safety stock." />
               </div>
+              <Input
+                id="service-level"
+                type="number"
+                value={serviceLevel}
+                onChange={(e) => setServiceLevel(Number(e.target.value))}
+                min={50}
+                max={99.99}
+                step={0.1}
+                className="font-mono"
+              />
             </div>
 
             <div className="grid gap-2">
@@ -434,7 +435,10 @@ function TRRCalculator() {
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="trr-service">Service Level Goal (%)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="trr-service">Service Level Goal (%)</Label>
+                  <InfoPopover content="Target probability of not stocking out during lead time. 90% is common for general inventory; 95-99% for critical parts. Higher levels require more safety stock." />
+                </div>
                 <Input
                   id="trr-service"
                   type="number"
