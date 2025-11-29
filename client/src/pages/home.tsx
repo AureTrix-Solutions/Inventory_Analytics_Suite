@@ -221,7 +221,7 @@ function BufferCalculator() {
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="alpha">Smoothing Constant (α)</Label>
-                <InfoPopover content="Controls responsiveness of Croston's method. 0.15 is industry standard. Higher values react faster to recent changes." />
+                <InfoPopover content="Controls responsiveness of Croston's method. Research recommends 0.1-0.2 for intermittent demand; 0.15 is a balanced default. Higher values react faster to recent changes." />
               </div>
               <Input
                 id="alpha"
@@ -450,7 +450,7 @@ function TRRCalculator() {
             <div className="grid gap-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="trr-alpha">Smoothing Constant (α)</Label>
-                  <InfoPopover content="Controls responsiveness of Croston's method. 0.15 is industry standard. Higher values react faster to recent changes." />
+                  <InfoPopover content="Controls responsiveness of Croston's method. Research recommends 0.1-0.2 for intermittent demand; 0.15 is a balanced default. Higher values react faster to recent changes." />
                 </div>
                 <Input
                   id="trr-alpha"

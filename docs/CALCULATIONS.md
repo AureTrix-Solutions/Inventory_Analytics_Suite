@@ -47,7 +47,7 @@ z'_t = α × z_t + (1 - α) × z'_{t-1}
 p'_t = α × p_t + (1 - α) × p'_{t-1}
 ```
 
-Where α = 0.15 (smoothing constant, industry standard)
+Where α = 0.15 (within the recommended range of 0.1-0.2 for intermittent demand)
 
 **Step 3: Forecast**
 ```
