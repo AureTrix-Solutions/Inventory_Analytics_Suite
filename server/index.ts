@@ -70,9 +70,6 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
@@ -80,14 +77,10 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // Server configuration
-  // PORT: Use environment variable, default to 5000
-  // HOST: Use 0.0.0.0 for cloud environments (Replit), localhost for Windows compatibility
   const port = parseInt(process.env.PORT || "5000", 10);
   const isWindows = process.platform === "win32";
   const host = process.env.HOST || (isWindows ? "localhost" : "0.0.0.0");
   
-  // reusePort is not supported on Windows
   const listenOptions: { port: number; host: string; reusePort?: boolean } = {
     port,
     host,

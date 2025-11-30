@@ -24,7 +24,7 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from "recharts";
-import { Info, Calculator, Activity, TrendingUp, Settings2, CheckCircle2, AlertCircle, Sliders } from "lucide-react";
+import { Info, Calculator, Settings2, CheckCircle2, AlertCircle, Sliders } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -57,6 +57,7 @@ export default function Home() {
               <Calculator className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Inventory Analytics Suite</h1>
+            <NetlifyBadge />
           </div>
           <p className="text-slate-500 dark:text-slate-400 text-lg max-w-2xl">
             Advanced statistical tools for inventory optimization. Calculate safety stocks and lead times using Croston's method and Monte Carlo simulations.
@@ -112,7 +113,6 @@ export default function Home() {
               GitHub Pages
             </a>
           </div>
-          <NetlifyBadge />
         </footer>
       </div>
     </div>
