@@ -37,6 +37,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { NetlifyBadge } from "@/components/NetlifyBadge";
 
 function getMaseLabel(mase: number): { label: string; colorClass: string } {
   if (mase < 0.5) return { label: "Excellent", colorClass: "text-green-600 dark:text-green-400" };
@@ -111,6 +112,7 @@ export default function Home() {
               GitHub Pages
             </a>
           </div>
+          <NetlifyBadge />
         </footer>
       </div>
     </div>
