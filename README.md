@@ -7,7 +7,7 @@ An open-source inventory buffer calculator that determines optimal safety stock 
 Try the application online:
 
 - **Netlify**: [buffercalculator.netlify.app](https://buffercalculator.netlify.app/)
-- **GitHub Pages**: [blasthappy82.github.io/Inventory_Analytics_Suite](https://blasthappy82.github.io/Inventory_Analytics_Suite/)
+- **GitHub Pages**: [AureTrix-Solutions.github.io/Inventory_Analytics_Suite](https://AureTrix-Solutions.github.io/Inventory_Analytics_Suite/)
 
 ## Features
 
